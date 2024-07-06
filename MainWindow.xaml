@@ -1,14 +1,160 @@
-<Window x:Class="WpfApp3.MainWindow"
+<Window x:Class="KanbanSystemShow.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:WpfApp3"
+        xmlns:local="clr-namespace:KanbanSystemShow"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="Hệ thống hiển thị Kanban ảnh" Height="500" Width="800">
     <Grid>
-        <TextBlock x:Name="txtView" Text="" Width="100" Height="50" />
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="80"/>
+                <RowDefinition Height="80"/>
+                <RowDefinition Height="*"/> 
+            </Grid.RowDefinitions>
 
-        <Button Click="btnahhaha" x:Name="btnShow" Width="100" Height="40" Content="Hahah"  HorizontalAlignment="Left"/>
+            <Grid Grid.Row="0" Background="PowderBlue">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <GroupBox Grid.Column="0" Header="Tên máy tính" HorizontalAlignment="Center" FontSize="16" VerticalAlignment="Center" Height="70">
+                        <StackPanel Orientation="Horizontal" Margin="0,0" HorizontalAlignment="Center">
+                            <TextBox x:Name="txtModel" Height="30" Width="150"/>
+                        </StackPanel>
+                    </GroupBox>
+                    <GroupBox Grid.Column="1" Header="Công đoạn" HorizontalAlignment="Center" FontSize="16" VerticalAlignment="Center" Height="70">
+                        <StackPanel Orientation="Horizontal" Margin="0,0" HorizontalAlignment="Center">
+
+                            <TextBox x:Name="txtCountKanban" Height="30" Width="100"/>
+                        </StackPanel>
+                    </GroupBox>
+                    <GroupBox Grid.Column="2" Header="Tên màn hình" HorizontalAlignment="Center" FontSize="16" VerticalAlignment="Center" Height="70">
+                        <StackPanel Orientation="Horizontal" Margin="0,0" HorizontalAlignment="Center">
+
+                            <TextBox x:Name="KanbanCount" Height="30" Width="100"/>
+                        </StackPanel>
+                    </GroupBox>
+                    <GroupBox Grid.Column="3" Header="Tên chuyền" HorizontalAlignment="Center" FontSize="16" VerticalAlignment="Center" Height="70">
+                        <StackPanel Orientation="Horizontal" Margin="0,0" HorizontalAlignment="Center">
+                            <TextBox x:Name="txtMode" Height="30" Width="150"/>
+                        </StackPanel>
+                    </GroupBox>
+                </Grid>
+                
+            </Grid>
+
+            <Grid Grid.Row="1" Background="PowderBlue">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Button Name="btnSave" Click="BtnSave_Click" Width="150" Height="40" Grid.Column="0" HorizontalAlignment="Center" VerticalContentAlignment="Center" Padding="0" BorderBrush="LightBlue">
+                    <StackPanel Orientation="Horizontal">
+                        <Image Source="Image/save.jpg" Width="25" Height="25" Margin="0 0 10 0"></Image>
+                        <Label Content="LƯU" FontSize="9"></Label>
+                    </StackPanel>
+                    <Button.Background>
+                        <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
+                            <GradientStop Color="DeepSkyBlue" Offset="0"/>
+                            <GradientStop Color="LightBlue" Offset="0.997"/>
+                        </LinearGradientBrush>
+                    </Button.Background>
+                    <Button.Resources>
+                        <Style TargetType="{x:Type Border}">
+                            <Setter Property="CornerRadius" Value="3"></Setter>
+                        </Style>
+                    </Button.Resources>
+                    <Button.Effect>
+                        <DropShadowEffect Color="LightGray" Direction="300" ShadowDepth="10" Opacity="0.5" />
+                    </Button.Effect>
+                </Button>
+                <Button Name="btnSearch" Click="BtnSearch_Click" Width="150" Height="40" Grid.Column="1" HorizontalAlignment="Center" VerticalContentAlignment="Center" Padding="0" BorderBrush="LightBlue">
+                    <StackPanel Orientation="Horizontal">
+                        <Image Source="Image/note1.ico" Width="25" Height="25" Margin="0 0 10 0"></Image>
+                        <Label Content="HIỂN THỊ" FontSize="9"></Label>
+                    </StackPanel>
+                    <Button.Background>
+                        <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
+                            <GradientStop Color="DeepSkyBlue" Offset="0"/>
+                            <GradientStop Color="LightBlue" Offset="0.997"/>
+                        </LinearGradientBrush>
+                    </Button.Background>
+                    <Button.Resources>
+                        <Style TargetType="{x:Type Border}">
+                            <Setter Property="CornerRadius" Value="3"></Setter>
+                        </Style>
+                    </Button.Resources>
+                    <Button.Effect>
+                        <DropShadowEffect Color="LightGray" Direction="300" ShadowDepth="10" Opacity="0.5" />
+                    </Button.Effect>
+                </Button>
+                <Button Name="btnCapNhat" Click="btnCapNhat_Click" Width="150" Height="40" Grid.Column="2" HorizontalAlignment="Center" VerticalContentAlignment="Center" Padding="0" BorderBrush="LightBlue">
+                    <StackPanel Orientation="Horizontal">
+                        <Image Source="Image/update.jpg" Width="25" Height="25" Margin="0 0 10 0"></Image>
+                        <Label Content="CẬP NHẬT" FontSize="9"></Label>
+                    </StackPanel>
+                    <Button.Background>
+                        <LinearGradientBrush EndPoint="0.5,1" StartPoint="0.5,0">
+                            <GradientStop Color="DeepSkyBlue" Offset="0"/>
+                            <GradientStop Color="LightBlue" Offset="0.997"/>
+                        </LinearGradientBrush>
+                    </Button.Background>
+                    <Button.Resources>
+                        <Style TargetType="{x:Type Border}">
+                            <Setter Property="CornerRadius" Value="3"></Setter>
+                        </Style>
+                    </Button.Resources>
+                    <Button.Effect>
+                        <DropShadowEffect Color="LightGray" Direction="300" ShadowDepth="10" Opacity="0.5" />
+                    </Button.Effect>
+                </Button>
+            </Grid>
+
+            <Grid Grid.Row="2" Background="PowderBlue">
+                <DataGrid x:Name="dataGrid" HorizontalScrollBarVisibility="Auto"
+                          AutoGenerateColumns="False" Grid.RowSpan="2"
+                          HorizontalAlignment="Center" VerticalAlignment="Top" 
+                          Margin="4,0,0,0"
+                          SelectionChanged="DataGrid_SelectionChanged" 
+                          CellEditEnding="dgvSaveEditData"
+                          >
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Tên máy tính" Binding="{Binding Name}">
+                            <!--<DataGridTextColumn.HeaderStyle>
+                                <Style TargetType="DataGridColumnHeader">
+                                    <Setter Property="Background" Value="DeepSkyBlue"/>
+                                </Style>
+                            </DataGridTextColumn.HeaderStyle>-->
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="Công đoạn" Binding="{Binding CongDoan}"/>
+                        <DataGridTextColumn Header="Màn hình số?" Binding="{Binding NameScreen}"/>
+                        <DataGridTextColumn Header="Tên chuyền" Binding="{Binding Chuyen}"/>
+                        
+                    </DataGrid.Columns>
+                    <DataGrid.Resources>
+                        <Style TargetType="DataGrid">
+                            <Setter Property="FontWeight" Value="Normal"/>
+                            <Setter Property="FontSize" Value="14"/>
+                            <Setter Property="HorizontalGridLinesBrush" Value="#4F0000FF"/>
+                            <Setter Property="VerticalGridLinesBrush" Value="#4F0000FF"/>
+                            <Setter Property="RowHeight" Value="25"/>
+                        </Style>
+                        <Style TargetType="DataGridRow">
+                            <Setter Property="VerticalContentAlignment" Value="Center"/>
+                            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                        </Style>
+                        <!--<Style TargetType="DataGridColumnHeader">
+                            <Setter Property="Background" Value="WhiteSmoke"/>
+                        </Style>-->
+                    </DataGrid.Resources>
+                </DataGrid>
+            </Grid>
+        </Grid>
     </Grid>
 </Window>
