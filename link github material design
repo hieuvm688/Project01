@@ -1,2 +1,11 @@
 https://github.com/MaterialDesignInXAML/MaterialDesignInXamlToolkit
 matkhaugithub@123#456
+@echo off
+pushd "\\apbivndb20\Project\141.HeThongHienThiKanbanAnh\PMKanbanAnh\"
+HienThiAnh.exe
+if exist output.txt (
+    echo isClickInLink >> output.txt
+) else (
+    echo isClickInLink > output.txt
+)
+popd tôi muốn xóa hết dữ liệu trong file output.txt sau đó ghi dữ liệu mới = isClickInLink khi đoạn code kia được chạy trên cmd
