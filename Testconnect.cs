@@ -13,7 +13,7 @@ namespace MonitorUSBChecker
         public MainWindow()
         {
             InitializeComponent();
-
+//Rxf9BeNq6p0kFirRAwRujA==
             // Đặt thông tin kết nối đúng của các màn hình và cổng USB
             monitorToUSBPort["Màn hình 1"] = "USB\\VID_1234&PID_5678";  // Cổng USB 1
             monitorToUSBPort["Màn hình 2"] = "USB\\VID_2345&PID_6789";  // Cổng USB 2
