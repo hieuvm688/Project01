@@ -26,6 +26,62 @@ namespace MonitorUSBChecker
             StartMonitoringUSBEvents();
         }
 
+#region Viết ghi nhập bằng EPPLUS và Aspose.Cells
+ private void btnRunMacroFile_Click(object sender, RoutedEventArgs e)
+ {
+     ExcelPackage.LicenseContext = LicenseContext.NonCommercial; // Hoặc Commercial
+     using (var package = new ExcelPackage(new FileInfo("file.xlsm")))
+     {
+
+         package.SaveAs(new FileInfo("output.xlsx"));
+     }
+     UseMacroFileExcel();
+ }
+ private void UseMacroFileExcel()
+ {
+     string filePath = @"D:\GitHub\Library\QuanlyTDTK_RD-EE\TestCell.xlsm";
+
+     // 1. Tạo Workbook mới
+     Workbook workbook = new Workbook();
+
+     // 2. Chỉ định định dạng tệp là XLSM
+     workbook.FileFormat = FileFormatType.Xlsm;
+
+     // 3. Thêm worksheet vào workbook
+     Worksheet worksheet = workbook.Worksheets[0];
+     worksheet.Name = "Sheet1";
+
+     // 4. Thêm giá trị vào cột A và B (dữ liệu mẫu)
+     worksheet.Cells["A1"].PutValue(5);
+     worksheet.Cells["A2"].PutValue(10);
+     worksheet.Cells["A3"].PutValue(15);
+
+     worksheet.Cells["B1"].PutValue(3);
+     worksheet.Cells["B2"].PutValue(6);
+     worksheet.Cells["B3"].PutValue(9);
+
+     // 5. Thêm macro VBA thực hiện tính tổng cột A và B vào cột C
+     // Nội dung VBA macro
+     string macroCode = @"
+         Sub CalculateSum()
+         Dim i As Integer
+         For i = 1 To 3 ' Duyệt qua các dòng dữ liệu
+             Cells(i, 3).Value = Cells(i, 1).Value + Cells(i, 2).Value ' Cột C = Cột A + Cột B
+         Next i
+         End Sub";
+
+     // Thêm module VBA
+     //VbaModule module = workbook.VbaProject.Modules.Add(worksheet);
+     //module.Codes = macroCode;
+     //module.Name = "Module1";
+
+     // 6. Lưu Workbook ra file .xlsm
+     workbook.Save(filePath);
+
+     Console.WriteLine("File Excel với macro đã được tạo và lưu tại: " + filePath);
+ }
+#endregion
+
         private void StartMonitoringUSBEvents()
         {
             WqlEventQuery query = new WqlEventQuery("SELECT * FROM __InstanceOperationEvent WITHIN 2 WHERE TargetInstance ISA 'Win32_USBHub'");
