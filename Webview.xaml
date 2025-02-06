@@ -1,0 +1,26 @@
+﻿<Window x:Class="testControl.TestApp.Webview"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        WindowState="Maximized"
+        xmlns:local="clr-namespace:testControl.TestApp"
+        mc:Ignorable="d"
+        Title="Webview" Height="450" Width="800" Background="#FF673AB7">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="10"/>
+            <RowDefinition Height="5*"/>
+        </Grid.RowDefinitions>
+        <Grid Grid.Row="0" Margin="0 0 0 10">
+            <Button Click="btnReloadAuto_Click" Content="Load lại auto tạo repo" Width="150" Height="50" Background="#FF2962FF" Foreground="White" FontSize="14" FontWeight="Bold"/>
+        </Grid>
+        <Grid Grid.Row="1" Background="White" />
+        <Grid Grid.Row="2" Margin="0 0 0 10">
+            <wv2:WebView2 x:Name="webview" Source="https://github.com/hieuvm688" />
+        </Grid>
+    </Grid>
+    
+</Window>
