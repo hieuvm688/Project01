@@ -1,0 +1,185 @@
+-- Bài tập Ngày 2
+-- Bài 1 CREATE DATABASE MyDatabase
+---1
+CREATE DATABASE MyDatabase
+ON PRIMARY
+(
+    NAME = MyPrimaryDataFile,
+    FILENAME = 'C:\SQLData\MyPrimaryDataFile.mdf',
+    SIZE = 20MB,
+    MAXSIZE = 200MB,
+    FILEGROWTH = 10MB
+),
+FILEGROUP Secondary
+(
+    NAME = MySecondaryDataFile,
+    FILENAME = 'C:\SQLData\MySecondaryDataFile.ndf',
+    SIZE = 20MB,
+    MAXSIZE = 200MB,
+    FILEGROWTH = 10MB
+)
+LOG ON
+(
+    NAME = MyLogFile,
+    FILENAME = 'C:\SQLData\MyLogFile.ldf',
+    SIZE = 10MB,
+    MAXSIZE = 100MB,
+    FILEGROWTH = 10MB
+);
+-- 2
+CREATE TABLE Table_BT1
+(
+    ID INT PRIMARY KEY,
+    Name NVARCHAR(100)
+)
+ON Secondary; -- Tạo bảng trên file group Secondary
+-- insert dữ liệu vào bảng
+INSERT INTO Table_BT1 (ID, Name)
+VALUES (1, N'Tuyền 1'),
+       (2, N'Tuyền 2'),
+       (3, N'Tuyền 3');
+--- 3
+SELECT -- kiểm tra thông tin trên file
+    database_id,
+    name AS FileName,
+    physical_name AS FilePath,
+    size * 8 / 1024 AS SizeInMB,
+    max_size,
+    growth * 8 / 1024 AS GrowthInMB,
+    type_desc AS FileType
+FROM sys.master_files;
+
+SELECT -- kiểm tra thông tin trên filegroup
+    fg.data_space_id AS FileGroupID,
+    fg.name AS FileGroupName,
+    fg.is_default AS IsDefaultFileGroup,
+    df.name AS FileName,
+    df.physical_name AS FilePath
+FROM sys.filegroups fg
+JOIN sys.database_files df
+ON fg.data_space_id = df.data_space_id;
+
+
+
+-- Bài 2
+-- tạo mộ tbanrg Heap và chèn dữ liệu lớn
+CREATE TABLE HeapTable -- tạo bảng Heap
+(
+    ID INT NOT NULL,
+    Name NVARCHAR(100) NOT NULL,
+    Value DECIMAL(18, 2) NOT NULL
+);
+
+-- Tạo dữ liệu mẫu lớn
+DECLARE @i INT = 1;
+
+WHILE @i <= 1000000 -- Chèn 1 triệu dòng
+BEGIN
+    INSERT INTO HeapTable (ID, Name, Value)
+    VALUES 
+    (@i, CONCAT('Name_', @i), RAND() * 1000);
+
+    SET @i = @i + 1;
+END;
+
+-- dùng DBCC IND để liet ke cac page được cấp phát
+
+USE master; -- Thay bằng tên cơ sở dữ liệu của bạn
+GO
+
+DBCC IND ('master', 'HeapTable', -1);
+
+-- phân tích số lượng page và extent được sử dụng
+
+SELECT  -- số lượng page
+    OBJECT_NAME(p.object_id) AS HeapTable,
+    p.index_id,
+    p.partition_id,
+    a.type_desc AS AllocationType,
+    a.total_pages AS TotalPages,
+    a.used_pages AS UsedPages,
+    a.data_pages AS DataPages,
+    (a.total_pages * 8) / 1024 AS TotalSizeMB,
+    (a.used_pages * 8) / 1024 AS UsedSizeMB
+FROM sys.partitions p
+JOIN sys.allocation_units a
+    ON p.partition_id = a.container_id
+WHERE OBJECT_NAME(p.object_id) IS NOT NULL;
+
+SELECT -- số lượng extent
+    SUM(total_pages) / 8 AS TotalExtents,
+    SUM(used_pages) / 8 AS UsedExtents
+FROM sys.allocation_units;
+
+
+
+-- Bài tập 3
+-- tạo cơ sở dữ liệu với file dữ liệu và log trên các volumn khác nhau
+CREATE DATABASE MyDatabase
+ON 
+( NAME = MyDatabase_Data,
+    FILENAME = 'D:\SQLData\MyDatabase.mdf',  -- File dữ liệu trên Volume D:
+    SIZE = 10MB,
+    MAXSIZE = 100MB,
+    FILEGROWTH = 10MB ),
+( NAME = MyDatabase_File2,
+    FILENAME = 'D:\SQLData\MyDatabase2.ndf',  -- File dữ liệu phụ, nếu cần
+    SIZE = 5MB,
+    MAXSIZE = 50MB,
+    FILEGROWTH = 5MB )
+LOG ON
+( NAME = MyDatabase_Log,
+    FILENAME = 'E:\SQLLogs\MyDatabase.ldf',  -- File log trên Volume E:
+    SIZE = 5MB,
+    MAXSIZE = 25MB,
+    FILEGROWTH = 5MB );
+
+	-- Chèn dữ liệu lớ để gây tải I/O
+
+	CREATE TABLE LargeTable (
+    ID INT IDENTITY(1,1) PRIMARY KEY,
+    Data1 NVARCHAR(100),
+    Data2 NVARCHAR(1000),
+    CreatedDate DATETIME DEFAULT GETDATE()
+);
+DECLARE @i INT = 1;
+
+WHILE @i <= 100000 -- Số lượng dòng 
+BEGIN
+    INSERT INTO LargeTable (Data1, Data2)
+    VALUES (
+        NEWID(), -- Tạo dữ liệu ngẫu nhiên
+        REPLICATE('A', 1000) -- Chuỗi dài để tăng dung lượng
+    );
+    SET @i = @i + 1;
+END;
+-- đo lường thười gian trên từng file và nhận xét
+SELECT
+    physical_name,
+    io_stall_read_ms AS ReadLatency,
+    io_stall_write_ms AS WriteLatency,
+    num_of_reads,
+    num_of_writes
+FROM sys.dm_io_virtual_file_stats(NULL, NULL) AS vfs
+JOIN sys.master_files AS mf
+ON vfs.database_id = mf.database_id AND vfs.file_id = mf.file_id;
+
+--nhận xét lợi ích của việc tách file
+--1. Tăng hiệu suất I/O
+--Giảm xung đột I/O: Khi dữ liệu và log được ghi trên cùng một volume, ổ cứng phải xử lý đồng thời cả các thao tác đọc/ghi dữ liệu và ghi log. Việc tách chúng ra giúp giảm xung đột này, cải thiện hiệu suất tổng thể.
+
+--Tối ưu hóa truy vấn: File dữ liệu thường chịu tải đọc lớn từ các truy vấn, trong khi file log chủ yếu ghi giao dịch. Tách rời chúng giúp hệ thống quản lý hiệu quả hơn.
+
+--2. Cải thiện khả năng phục hồi
+--Trong trường hợp một volume gặp sự cố (hỏng ổ cứng hoặc lỗi hệ thống), việc tách file giúp giảm nguy cơ mất toàn bộ dữ liệu và log cùng lúc. Bạn có thể khôi phục hệ thống dễ dàng hơn nếu log và dữ liệu nằm trên các volume riêng biệt.
+
+--3. Quản lý tốt hơn dung lượng
+--Các volume riêng biệt giúp bạn quản lý dung lượng tốt hơn, dễ dàng phân bổ không gian đĩa cho từng loại file theo nhu cầu cụ thể (dữ liệu thường lớn hơn log).
+
+--4. Tăng tính linh hoạt
+--Với các hệ thống lớn, việc tách file cho phép bạn đặt các tệp trên ổ đĩa nhanh hơn (như SSD) để giảm độ trễ truy xuất. Ví dụ, log file thường được đặt trên ổ SSD để xử lý giao dịch nhanh hơn.
+
+--5. Hỗ trợ khả năng mở rộng
+--Khi cơ sở dữ liệu mở rộng, bạn có thể dễ dàng thêm các volume riêng cho dữ liệu hoặc log mà không cần di chuyển toàn bộ file từ một volume duy nhất.
+
+--6. Dễ dàng bảo trì
