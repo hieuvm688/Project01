@@ -31,3 +31,25 @@ GO
 
 ALTER EVENT SESSION [SlowQueries_Northwind] ON SERVER STATE = START;
 GO
+
+USE Northwind;
+GO
+SELECT 
+    c.CustomerID, c.CompanyName, 
+    o.OrderID, o.OrderDate,
+    od.ProductID, p.ProductName, 
+    od.Quantity, od.UnitPrice,
+    cat.CategoryName
+FROM 
+    Customers c
+    INNER JOIN Orders o ON c.CustomerID = o.CustomerID
+    INNER JOIN [Order Details] od ON o.OrderID = od.OrderID
+    INNER JOIN Products p ON od.ProductID = p.ProductID
+    INNER JOIN Categories cat ON p.CategoryID = cat.CategoryID
+WHERE 
+    c.Country = 'France' 
+    AND o.OrderDate BETWEEN '1996-01-01' AND '1998-12-31'
+    AND p.Discontinued = 0
+ORDER BY 
+    o.OrderDate DESC, od.Quantity DESC;
+GO
