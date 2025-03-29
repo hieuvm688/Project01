@@ -1,3 +1,33 @@
 https://labs.robusta.vn/#/client/MjA3MABjAG15c3Fs user:vuminh.hieu@brother-bivn.com.vn pass:Sql#1503
 https://courses.robusta.vn/? user:std_hn_hieu.vu pass:Hieuvmbo.01
 https://learn.microsoft.com/en-us/sql/samples/adventureworks-install-configure?view=sql-server-ver16&tabs=ssms
+CREATE EVENT SESSION [SlowQueries_Northwind] ON SERVER 
+ADD EVENT sqlserver.sql_statement_completed
+(
+    ACTION(
+        sqlserver.sql_text, 
+        sqlserver.username,
+        sqlserver.client_hostname,
+        sqlserver.plan_handl,
+        sqlserver.tsql_stack
+    )
+    WHERE (
+        [duration] > 1000000 AND 
+        [sqlserver].[equal_i_sql_unicode_string]([sqlserver].[database_name],N'Northwind')
+    )
+)
+ADD TARGET package0.event_file(
+    SET filename=N'SlowQueries_Northwind',
+    max_file_size=50,
+    max_rollover_files=5
+)
+WITH (
+    MAXMEMORY=4096 KB, 
+    EVENT_RETENTION_MODE=ALLOW_SINGLE_EVENT_LOSS, 
+    MAXDISPATCH_LATENCY=30 SECONDS,
+    STARTUP_STATE=OFF
+);
+GO
+
+ALTER EVENT SESSION [SlowQueries_Northwind] ON SERVER STATE = START;
+GO
