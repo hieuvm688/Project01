@@ -53,3 +53,71 @@ WHERE
 ORDER BY 
     o.OrderDate DESC, od.Quantity DESC;
 GO
+=================================================================================
+//Tạo button có thể kéo thả trên nền window
+-- OPEN UI xaml
+<!-- Canvas nổi luôn nằm trên cùng toàn giao diện -->
+<Canvas x:Name="FloatingCanvas"
+        Panel.ZIndex="999"
+        IsHitTestVisible="True">
+
+    <Border x:Name="FloatingPanel"
+            Background="#AA222222"
+            CornerRadius="10"
+            Padding="5"
+            Width="80"
+            Canvas.Left="10"
+            Canvas.Top="10"
+            MouseLeftButtonDown="FloatingPanel_MouseLeftButtonDown"
+            MouseMove="FloatingPanel_MouseMove"
+            MouseLeftButtonUp="FloatingPanel_MouseLeftButtonUp">
+        <StackPanel>
+            <Button Content="⬆️ Up"
+                    Click="BtnUp_Click"
+                    Margin="0 3"
+                    PreviewMouseDown="Child_PreviewMouseDown"/>
+            <Button Content="⬇️ Down"
+                    Click="BtnDown_Click"
+                    Margin="0 3"
+                    PreviewMouseDown="Child_PreviewMouseDown"/>
+            <Button Content="▶ Auto"
+                    Click="BtnAuto_Click"
+                    Margin="0 3"
+                    PreviewMouseDown="Child_PreviewMouseDown"/>
+        </StackPanel>
+    </Border>
+</Canvas>
+-- END UI xaml
+
+//Code Behind
+private Point _dragOffset;
+private bool _isDragging = false;
+private void FloatingPanel_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+{
+    _dragOffset = e.GetPosition(FloatingPanel);
+    _isDragging = true;
+    FloatingPanel.CaptureMouse();
+}
+
+private void FloatingPanel_MouseMove(object sender, MouseEventArgs e)
+{
+    if (_isDragging)
+    {
+        var position = e.GetPosition(FloatingCanvas);
+        Canvas.SetLeft(FloatingPanel, position.X - _dragOffset.X);
+        Canvas.SetTop(FloatingPanel, position.Y - _dragOffset.Y);
+    }
+}
+
+private void FloatingPanel_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+{
+    _isDragging = false;
+    FloatingPanel.ReleaseMouseCapture();
+}
+private void Child_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+{
+    e.Handled = false;
+}
+
+
+
