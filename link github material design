@@ -1,11 +1,375 @@
-https://github.com/MaterialDesignInXAML/MaterialDesignInXamlToolkit
-matkhaugithub@123#456
-@echo off
-pushd "\\apbivndb20\Project\141.HeThongHienThiKanbanAnh\PMKanbanAnh\"
-HienThiAnh.exe
-if exist output.txt (
-    echo isClickInLink >> output.txt
-) else (
-    echo isClickInLink > output.txt
-)
-popd tôi muốn xóa hết dữ liệu trong file output.txt sau đó ghi dữ liệu mới = isClickInLink khi đoạn code kia được chạy trên cmd
+Biểu trưng của NotebookLM
+Optimizing Warehouse and Supply Chain Operations
+Nguồn
+Cuộc trò chuyện
+Studio
+Thiết Kế Lược Đồ Cơ Sở Dữ Liệu Hệ Thống Store.s
+Hướng dẫn về nguồn
+Thiết Kế Lược Đồ Cơ Sở Dữ Liệu Hệ Thống Store.s
+Tuyệt vời! Dựa trên cuộc trò chuyện của chúng ta và thông tin từ các nguồn được cung cấp ("WH.Store design.pdf"), tôi sẽ phác thảo một bộ lệnh SQL để tạo cơ sở dữ liệu và các bảng chính cùng với các mối quan hệ cơ bản, mô phỏng hệ thống Store.s được mô tả.
+Lưu ý quan trọng: Tài liệu nguồn không cung cấp trực tiếp lược đồ cơ sở dữ liệu (database schema) chi tiết. Đây là một lược đồ được đề xuất dựa trên việc diễn giải các thực thể, dữ liệu và quy trình được mô tả trong tài liệu. Một hệ thống thực tế phức tạp như vậy có thể cần nhiều bảng hơn, các trường dữ liệu bổ sung, và các ràng buộc (constraints), chỉ mục (indexes), và các đối tượng cơ sở dữ liệu khác (như stored procedures, triggers) để đảm bảo tính toàn vẹn và hiệu suất dữ liệu.
+Tôi sẽ sử dụng cú pháp SQL phổ biến, có thể cần điều chỉnh nhỏ tùy thuộc vào hệ quản trị cơ sở dữ liệu cụ thể bạn sử dụng (ví dụ: MySQL, SQL Server, PostgreSQL).
+Dưới đây là bộ lệnh SQL đề xuất:
+-- Bước 1: Tạo cơ sở dữ liệu (Database)
+-- Lệnh này tạo ra một không gian lưu trữ mới cho toàn bộ hệ thống.
+CREATE DATABASE WH_Store_System;
+
+-- Chọn cơ sở dữ liệu vừa tạo để bắt đầu làm việc
+USE WH_Store_System;
+
+-- Bước 2: Tạo các bảng (Tables) và định nghĩa các mối quan hệ (Relationships)
+
+-- Bảng Users (Người dùng): Lưu thông tin về nhân viên (MC, Haizen, Quản lý, v.v.)
+-- Dựa trên thông tin về Mã NV, Họ tên, Quyền, Nhà máy, Khu vực [1, 2].
+CREATE TABLE Users (
+    user_id VARCHAR(50) PRIMARY KEY, -- Mã nhân viên (VD: M0009676) [1, 2]
+    full_name VARCHAR(255) NOT NULL, -- Họ tên [2]
+    username VARCHAR(100) UNIQUE,    -- Tên đăng nhập [2]
+    password_hash VARCHAR(255),      -- Lưu trữ mật khẩu đã mã hóa (Không lưu mật khẩu thô)
+    role VARCHAR(50),                -- Quyền hạn (Admin, MC, Haizen, Manager, IQC, etc.) [2]
+    factory VARCHAR(100),            -- Nhà máy [2]
+    area VARCHAR(100),               -- Khu vực làm việc (Office, Packing, TTF, Fac 1, etc.) [2]
+    email VARCHAR(255),              -- Email liên hệ [2]
+    phone_number VARCHAR(50),        -- Số điện thoại [2]
+    created_at DATETIME,             -- Ngày giờ tạo [2]
+    updated_at DATETIME              -- Ngày giờ cập nhật cuối cùng [2]
+);
+
+-- Bảng Suppliers (Nhà cung cấp): Lưu thông tin về các nhà cung cấp linh kiện.
+-- Dựa trên thông tin về Nhà cung cấp [3, 4].
+CREATE TABLE Suppliers (
+    supplier_id VARCHAR(50) PRIMARY KEY, -- Mã nhà cung cấp (VD: L4BAIDXE) [4]
+    supplier_name VARCHAR(255) NOT NULL, -- Tên nhà cung cấp (VD: AIDEN VIETNAM LIMITED) [3, 4]
+    contact_info TEXT                    -- Thông tin liên hệ khác
+);
+
+-- Bảng Parts (Linh kiện): Lưu thông tin chi tiết về từng loại linh kiện.
+-- Dựa trên thông tin về Mã linh kiện, Tên linh kiện, Loại, Nhà cung cấp, Quy định cấp, Tactime, Model, Dòng máy, Chuyền mặc định [1, 3, 5-11].
+CREATE TABLE Parts (
+    part_id VARCHAR(100) PRIMARY KEY,    -- Mã linh kiện (VD: D00HW8001, LU2238001) [1, 3, 7-63]
+    part_name VARCHAR(255) NOT NULL,     -- Tên linh kiện (VD: MAIN PCB, SCREW) [3, 59]
+    part_type ENUM('Chung', 'CTKT') NOT NULL, -- Loại linh kiện (Dùng chung/Chi tiết kỹ thuật) [3, 5-7, 55, 64]
+    supplier_id VARCHAR(50),             -- Mã nhà cung cấp chính (FK tới Suppliers) [3, 4]
+    issuing_standard VARCHAR(255),       -- Quy định cấp (Theo thùng, túi, khay, kít, 1 hộp/lần, etc.) [3, 22, 54, 55, 64]
+    tactime_picking_sec INT,             -- Thời gian tiêu chuẩn để lấy (giây) [3, 64]
+    tactime_supplying_sec INT,           -- Thời gian tiêu chuẩn để cấp (giây) [3, 64]
+    model VARCHAR(100),                  -- Model sản phẩm sử dụng linh kiện [3, 63, 65, 66]
+    machine_line VARCHAR(100),           -- Dòng máy sử dụng linh kiện [3, 63, 65, 66]
+    default_production_line_id VARCHAR(50), -- Chuyền mặc định sử dụng linh kiện (FK tới ProductionLines - sẽ tạo sau) [3]
+    CONSTRAINT fk_part_supplier FOREIGN KEY (supplier_id) REFERENCES Suppliers(supplier_id)
+    -- FK tới ProductionLines sẽ được thêm sau khi tạo bảng ProductionLines
+);
+
+-- Bảng ProductionLines (Chuyền sản xuất): Lưu thông tin về các chuyền sản xuất.
+-- Dựa trên tên chuyền (W711, W701, Line1, Line2, etc.) [1, 3, 7, 14, 20, 46, 56, 66, 67].
+CREATE TABLE ProductionLines (
+    line_id VARCHAR(50) PRIMARY KEY, -- Mã/Tên chuyền (VD: W711, W701) [3, 7, 14, 20, 46, 56, 66, 67]
+    line_name VARCHAR(100) NOT NULL, -- Tên đầy đủ của chuyền
+    factory VARCHAR(100)             -- Nhà máy đặt chuyền này
+);
+
+-- Thêm FK cho Parts sau khi ProductionLines đã được tạo
+ALTER TABLE Parts
+ADD CONSTRAINT fk_part_default_line FOREIGN KEY (default_production_line_id) REFERENCES ProductionLines(line_id);
+
+
+-- Bảng WarehouseLocations (Vị trí kho B-wins/Store): Lưu thông tin chi tiết về các vị trí lưu trữ trong kho.
+-- Dựa trên cấu trúc Block, Dãy, Cột, Tầng [31, 68-70]. Bao gồm cả vị trí lẻ, vị trí thùng lớn, pallet [6, 71-74].
+CREATE TABLE WarehouseLocations (
+    location_id VARCHAR(100) PRIMARY KEY, -- Mã định danh vị trí (VD: F3-B2/2-23-01) [44, 48, 51, 53, 58, 68, 69]
+    block VARCHAR(50),                    -- Block/Khu vực (VD: F3-VN-Nho-WH, MCR6, STE) [31, 68, 69]
+    row VARCHAR(50),                      -- Dãy (VD: B2/2, A1/2, STE) [68, 69]
+    `column` VARCHAR(50),                 -- Cột (VD: 23, 35, 5) [68, 69]
+    `level` VARCHAR(50),                  -- Tầng (VD: 01, 02) [68, 69]
+    zone_type ENUM('Normal', 'Odd', 'Large', 'Pallet', 'Temporary') -- Loại khu vực (Bình thường, Lẻ, Thùng lớn, Pallet, Trung gian tạm) [6, 18, 34, 41, 71-76]
+    -- Có thể thêm các trường cho vị trí chuyền/vị trí trên xe nếu gộp chung loại Location,
+    -- nhưng tách bảng sẽ rõ ràng hơn về vai trò của từng vị trí.
+);
+
+-- Bảng LineLocations (Vị trí chuyền): Lưu thông tin chi tiết về các vị trí cấp linh kiện trên chuyền.
+-- Dựa trên Chuyền và Vị trí cụ thể trên chuyền (VD: W711-FU02) [7, 14, 15, 23, 38, 39, 54, 55].
+CREATE TABLE LineLocations (
+    line_location_id VARCHAR(100) PRIMARY KEY, -- Mã định danh vị trí trên chuyền (VD: W701-FU01) [21, 35, 50, 54, 55]
+    production_line_id VARCHAR(50) NOT NULL, -- Mã chuyền (FK tới ProductionLines) [3, 7, 14, 20, 46, 56]
+    position_on_line VARCHAR(50) NOT NULL, -- Vị trí cụ thể trên chuyền (VD: FU01-01, TN-29) [3, 14, 23, 38, 39, 54, 55]
+    qr_code VARCHAR(255) UNIQUE,           -- Mã QR của vị trí chuyền [15, 38-40, 53, 77-80]
+    CONSTRAINT fk_line_location_line FOREIGN KEY (production_line_id) REFERENCES ProductionLines(line_id)
+);
+
+-- Bảng Vehicles (Xe): Lưu thông tin về các xe cung cấp linh kiện (CCLK) hoặc AGV.
+-- Dựa trên Số xe, Thông tin tem QR xe [14, 21, 75, 81-83].
+CREATE TABLE Vehicles (
+    vehicle_id VARCHAR(50) PRIMARY KEY, -- Mã định danh xe (VD: No.02, Xe 05) [14, 21, 60, 75, 81-86]
+    vehicle_number VARCHAR(50) UNIQUE NOT NULL, -- Số xe hiển thị (VD: No.02) [14]
+    vehicle_type ENUM('CCLK', 'AGV', 'Other'), -- Loại xe [1, 5, 13, 14, 21, 24, 25, 38-41, 46, 50, 52, 53, 60, 74-83, 85-90]
+    qr_code_info TEXT                   -- Thông tin cấu trúc tem QR xe (VD: No.01 (2No.01), S: Small, B: Big, L: Trái, R: Phải, T2: Tầng số 2) [14]
+    -- Có thể thêm trạng thái xe (Đang chạy, Đã hoàn thành, Chờ cấp, etc.) [13, 41, 77, 88]
+);
+
+-- Bảng VehiclePositions (Vị trí trên xe): Lưu thông tin chi tiết về các vị trí đặt hộp/thùng trên xe CCLK.
+-- Dựa trên Tầng, Mặt (Trái/Phải), QR riêng cho mỗi vị trí [14, 24, 39, 40].
+CREATE TABLE VehiclePositions (
+    vehicle_position_id VARCHAR(100) PRIMARY KEY, -- Mã định danh vị trí trên xe (Kết hợp vehicle_id, level, side) (VD: No.02_S.L_T2) [14, 35, 50, 54, 55]
+    vehicle_id VARCHAR(50) NOT NULL,      -- Mã xe (FK tới Vehicles) [14, 24, 39, 40]
+    `level` INT NOT NULL,                 -- Tầng (VD: 2) [14, 24, 39, 40]
+    side ENUM('L', 'R', 'Front', 'Back') NOT NULL, -- Mặt/Bên (Trái/Phải) [14, 24, 39, 40]
+    qr_code VARCHAR(255) UNIQUE,          -- Mã QR riêng cho vị trí này trên xe [14, 24, 39, 40]
+    CONSTRAINT fk_vehicle_position_vehicle FOREIGN KEY (vehicle_id) REFERENCES Vehicles(vehicle_id)
+);
+
+
+-- Bảng Inventory (Tồn kho): Theo dõi số lượng linh kiện tồn trong kho B-wins/Store.
+-- Dựa trên Mã linh kiện, Vị trí kho, Số lượng tồn, Số thùng, Mã QLTK [4, 8, 12, 17, 29, 31, 44, 48, 58, 59, 68-70, 91-95].
+CREATE TABLE Inventory (
+    inventory_id INT PRIMARY KEY AUTO_INCREMENT, -- ID tự tăng
+    part_id VARCHAR(100) NOT NULL,       -- Mã linh kiện (FK tới Parts) [8, 12, 17, 29, 31, 44, 48, 58-61]
+    location_id VARCHAR(100) NOT NULL,   -- Vị trí kho (FK tới WarehouseLocations) [8, 12, 17, 29, 31, 44, 48, 58, 68]
+    stock_quantity DECIMAL(10, 2) NOT NULL, -- Số lượng tồn thực tế [8, 12, 17, 29, 59, 61]
+    number_of_boxes INT,                 -- Số thùng/hộp [31, 44, 48, 51-53]
+    qltk_code VARCHAR(100),              -- Mã quản lý tồn kho (QLTK) [31, 44, 48, 51-53, 58, 93]
+    last_updated_at DATETIME NOT NULL,   -- Thời gian cập nhật cuối cùng (do giao dịch xuất/nhập/kiểm kê) [8, 10, 12, 23, 26, 29, 32, 83]
+    CONSTRAINT fk_inventory_part FOREIGN KEY (part_id) REFERENCES Parts(part_id),
+    CONSTRAINT fk_inventory_location FOREIGN KEY (location_id) REFERENCES WarehouseLocations(location_id),
+    CONSTRAINT uc_part_location UNIQUE (part_id, location_id, qltk_code) -- Một linh kiện với mã QLTK cụ thể chỉ tồn tại ở một vị trí duy nhất
+);
+
+-- Bảng ReceivingInstructions (Chỉ thị nhập kho - CTNK): Lưu thông tin về các chỉ thị nhập hàng.
+-- Dựa trên Mã CTNK, Mã linh kiện, Số lượng, Vị trí, Ngày giờ nhận [19, 24, 28, 31, 32, 44, 47, 48, 56, 68, 93, 95].
+CREATE TABLE ReceivingInstructions (
+    ctnk_code VARCHAR(100) PRIMARY KEY,  -- Mã chỉ thị nhập kho (VD: IMF32500053761) [19, 24, 28, 31, 32, 44, 47, 48, 56, 68, 93]
+    part_id VARCHAR(100) NOT NULL,       -- Mã linh kiện (FK tới Parts) [44, 48, 51-53, 56, 58]
+    expected_quantity DECIMAL(10, 2) NOT NULL, -- Số lượng mong đợi [56, 59]
+    received_quantity DECIMAL(10, 2), -- Số lượng thực tế đã nhận (có thể khác) [59]
+    expected_location_id VARCHAR(100), -- Vị trí kho mong đợi (FK tới WarehouseLocations) [56, 68-70]
+    receiving_timestamp DATETIME,        -- Ngày giờ nhận hàng [56, 58, 95]
+    status ENUM('Planned', 'Received', 'PartiallyReceived', 'Completed', 'Cancelled'), -- Trạng thái chỉ thị
+    notes TEXT,                          -- Ghi chú (VD: Ghi chú nội dung thay đổi, Sai số lượng tồn kho, Nhập lại B-wins) [33, 59, 92]
+    CONSTRAINT fk_ctnk_part FOREIGN KEY (part_id) REFERENCES Parts(part_id),
+    CONSTRAINT fk_ctnk_location FOREIGN KEY (expected_location_id) REFERENCES WarehouseLocations(location_id)
+    -- Có thể thêm các trường khác như nhà cung cấp, PO, invoice, lot NCC [4, 70, 93]
+);
+
+
+-- Bảng Transactions (Giao dịch): Bảng chung ghi lại các sự kiện trong hệ thống (xuất, nhập, cấp, thu hồi, kiểm kê, điều chỉnh).
+-- Dựa trên các quy trình Xuất, Nhập, Cấp, Thu hồi, Kiểm kê [1, 5, 8-13, 17, 22-32, 38, 45, 60, 77, 78, 82, 87, 96, 97].
+CREATE TABLE Transactions (
+    transaction_id INT PRIMARY KEY AUTO_INCREMENT, -- ID giao dịch tự tăng
+    transaction_type ENUM('Issue', 'Receive', 'Supply', 'Collection', 'InventoryCheck', 'Adjustment', 'UrgentIssue') NOT NULL, -- Loại giao dịch [8, 12, 22, 24, 25, 28, 31, 38, 45, 60, 61, 78, 82, 96, 97]
+    transaction_timestamp DATETIME NOT NULL, -- Thời gian xảy ra giao dịch [12, 13, 17, 23, 24, 30, 31, 40, 45, 58, 60, 62, 84-86, 95]
+    user_id VARCHAR(50),                 -- Người thực hiện giao dịch (FK tới Users) [2, 12, 13, 23, 28, 31, 38, 41, 45, 60, 83-85, 96, 97]
+    -- Có thể thêm source/destination location ID chung, nhưng chi tiết sẽ nằm ở các bảng detail.
+    CONSTRAINT fk_transaction_user FOREIGN KEY (user_id) REFERENCES Users(user_id)
+);
+
+-- Bảng IssueDetails (Chi tiết Giao dịch Xuất - từ B-wins): Chi tiết từng mặt hàng trong giao dịch xuất kho.
+-- Dựa trên Mã linh kiện, Số lượng, Vị trí xuất (từ kho), Vị trí đích (trên xe), Lot, CTNK [7, 9-11, 22-24, 26, 27, 35-37, 43, 45, 60, 84-86, 98].
+CREATE TABLE IssueDetails (
+    issue_detail_id INT PRIMARY KEY AUTO_INCREMENT, -- ID chi tiết xuất tự tăng
+    transaction_id INT NOT NULL,           -- Mã giao dịch (FK tới Transactions)
+    part_id VARCHAR(100) NOT NULL,       -- Mã linh kiện (FK tới Parts)
+    quantity DECIMAL(10, 2) NOT NULL,    -- Số lượng xuất thực tế [9-12, 22-24, 26, 27, 35-37, 43, 45, 59, 60, 63, 84-86, 98]
+    lot_number VARCHAR(100),             -- Lot sản xuất [3, 7, 22, 23, 30, 37, 42, 43, 56, 65-67, 99]
+    source_warehouse_location_id VARCHAR(100), -- Vị trí kho xuất (FK tới WarehouseLocations) [10, 11, 26, 35-37, 43, 47, 98]
+    destination_vehicle_position_id VARCHAR(100), -- Vị trí trên xe đích (FK tới VehiclePositions) [11, 24, 26, 35, 39, 50, 53-55]
+    ctnk_code VARCHAR(100),              -- Mã chỉ thị nhập kho (liên quan đến việc nhập lại) (FK tới ReceivingInstructions) [23, 24, 28, 31, 32, 44, 47, 48, 56, 93]
+    notes TEXT,                          -- Ghi chú (VD: xuất lẻ, thiếu tồn) [10, 30, 33, 35, 36, 45, 99]
+    CONSTRAINT fk_issue_transaction FOREIGN KEY (transaction_id) REFERENCES Transactions(transaction_id),
+    CONSTRAINT fk_issue_part FOREIGN KEY (part_id) REFERENCES Parts(part_id),
+    CONSTRAINT fk_issue_source_location FOREIGN KEY (source_warehouse_location_id) REFERENCES WarehouseLocations(location_id),
+    CONSTRAINT fk_issue_destination_vehicle_pos FOREIGN KEY (destination_vehicle_position_id) REFERENCES VehiclePositions(vehicle_position_id),
+    CONSTRAINT fk_issue_ctnk FOREIGN KEY (ctnk_code) REFERENCES ReceivingInstructions(ctnk_code)
+);
+
+-- Bảng ReceiveDetails (Chi tiết Giao dịch Nhập - vào B-wins): Chi tiết từng mặt hàng trong giao dịch nhập kho (bao gồm nhập lại).
+-- Dựa trên Mã linh kiện, Số lượng, Vị trí đích (vào kho), Nguồn (từ GR, từ chuyền), CTNK [24, 28-30, 32, 45, 82, 83].
+CREATE TABLE ReceiveDetails (
+    receive_detail_id INT PRIMARY KEY AUTO_INCREMENT, -- ID chi tiết nhập tự tăng
+    transaction_id INT NOT NULL,           -- Mã giao dịch (FK tới Transactions)
+    part_id VARCHAR(100),                -- Mã linh kiện (FK tới Parts). Có thể NULL nếu chỉ nhập lại hộp rỗng không có LK.
+    quantity DECIMAL(10, 2) NOT NULL,    -- Số lượng nhập thực tế [24, 28-30, 32, 45, 59, 82]
+    destination_warehouse_location_id VARCHAR(100), -- Vị trí kho nhập vào (FK tới WarehouseLocations) [24, 28, 32, 82]
+    source_details VARCHAR(255),         -- Nguồn nhập (VD: From GR, Return from Line) [17, 24, 29, 82]
+    ctnk_code VARCHAR(100),              -- Mã chỉ thị nhập kho (CTNK) (FK tới ReceivingInstructions) [24, 28-32, 44, 47, 48, 56, 93]
+    notes TEXT,                          -- Ghi chú [33, 59, 92]
+    CONSTRAINT fk_receive_transaction FOREIGN KEY (transaction_id) REFERENCES Transactions(transaction_id),
+    CONSTRAINT fk_receive_part FOREIGN KEY (part_id) REFERENCES Parts(part_id),
+    CONSTRAINT fk_receive_destination_location FOREIGN KEY (destination_warehouse_location_id) REFERENCES WarehouseLocations(location_id),
+    CONSTRAINT fk_receive_ctnk FOREIGN KEY (ctnk_code) REFERENCES ReceivingInstructions(ctnk_code)
+);
+
+-- Bảng SupplyDetails (Chi tiết Giao dịch Cấp - từ xe lên chuyền): Chi tiết từng mặt hàng trong giao dịch cấp linh kiện lên chuyền.
+-- Dựa trên Mã linh kiện, Số lượng, Lot, Vị trí nguồn (trên xe), Vị trí đích (trên chuyền), Xe CCLK, Tem QR hộp [7, 14, 15, 22, 38-40, 43, 46, 50, 53-56].
+CREATE TABLE SupplyDetails (
+    supply_detail_id INT PRIMARY KEY AUTO_INCREMENT, -- ID chi tiết cấp tự tăng
+    transaction_id INT NOT NULL,           -- Mã giao dịch (FK tới Transactions)
+    part_id VARCHAR(100) NOT NULL,       -- Mã linh kiện (FK tới Parts)
+    quantity DECIMAL(10, 2) NOT NULL,    -- Số lượng cấp thực tế [22, 38-40, 43, 56, 63]
+    lot_number VARCHAR(100),             -- Lot sản xuất [7, 22, 43, 56, 67]
+    source_vehicle_position_id VARCHAR(100), -- Vị trí trên xe nguồn (FK tới VehiclePositions) [38, 39, 50, 53-55]
+    destination_line_location_id VARCHAR(100), -- Vị trí trên chuyền đích (FK tới LineLocations) [14, 15, 38-40, 53, 54, 77-80]
+    vehicle_id VARCHAR(50),              -- Xe CCLK thực hiện cấp (FK tới Vehicles) [13-15, 21, 24, 25, 38-41, 46, 50, 52, 53, 76-83, 90]
+    box_qr_code VARCHAR(255),            -- Mã QR của hộp/thùng linh kiện [1, 7, 14, 15, 20, 24, 35, 39, 43, 50, 53-55, 77-79, 98]
+    box_number INT,                      -- Số thứ tự của hộp (nếu có) [7, 39]
+    notes TEXT,                          -- Ghi chú (VD: cấp thừa/thiếu, sai vị trí) [41]
+    CONSTRAINT fk_supply_transaction FOREIGN KEY (transaction_id) REFERENCES Transactions(transaction_id),
+    CONSTRAINT fk_supply_part FOREIGN KEY (part_id) REFERENCES Parts(part_id),
+    CONSTRAINT fk_supply_source_vehicle_pos FOREIGN KEY (source_vehicle_position_id) REFERENCES VehiclePositions(vehicle_position_id),
+    CONSTRAINT fk_supply_destination_line_loc FOREIGN KEY (destination_line_location_id) REFERENCES LineLocations(line_location_id),
+    CONSTRAINT fk_supply_vehicle FOREIGN KEY (vehicle_id) REFERENCES Vehicles(vehicle_id)
+);
+
+-- Bảng CollectionDetails (Chi tiết Giao dịch Thu hồi - từ chuyền về xe): Chi tiết hộp/thùng trống thu hồi từ chuyền.
+-- Dựa trên Vị trí nguồn (trên chuyền), Vị trí đích (trên xe), Tem QR hộp [13, 38, 78, 79].
+CREATE TABLE CollectionDetails (
+    collection_detail_id INT PRIMARY KEY AUTO_INCREMENT, -- ID chi tiết thu hồi tự tăng
+    transaction_id INT NOT NULL,           -- Mã giao dịch (FK tới Transactions)
+    part_id VARCHAR(100),                -- Mã linh kiện trong hộp/thùng thu hồi (FK tới Parts) [3, 38, 39, 54-56]
+    source_line_location_id VARCHAR(100), -- Vị trí trên chuyền nguồn (FK tới LineLocations) [13, 38, 78]
+    destination_vehicle_position_id VARCHAR(100), -- Vị trí trên xe đích (FK tới VehiclePositions) [13, 40, 78]
+    box_qr_code VARCHAR(255),            -- Mã QR của hộp/thùng thu hồi [13, 78, 79]
+    box_type ENUM('Empty', 'Full', 'Partial', 'SupplierReturn', 'CTKT', 'Chung'), -- Loại hộp (Trống, Đầy, Một phần, Trả NCC, CTKT, Chung) [1, 5, 13, 97]
+    vehicle_id VARCHAR(50),              -- Xe CCLK thực hiện thu hồi (FK tới Vehicles) [13, 40, 78]
+    notes TEXT,                          -- Ghi chú [33]
+    CONSTRAINT fk_collection_transaction FOREIGN KEY (transaction_id) REFERENCES Transactions(transaction_id),
+    CONSTRAINT fk_collection_part FOREIGN KEY (part_id) REFERENCES Parts(part_id),
+    CONSTRAINT fk_collection_source_line_loc FOREIGN KEY (source_line_location_id) REFERENCES LineLocations(line_location_id),
+    CONSTRAINT fk_collection_destination_vehicle_pos FOREIGN KEY (destination_vehicle_position_id) REFERENCES VehiclePositions(vehicle_position_id),
+    CONSTRAINT fk_collection_vehicle FOREIGN KEY (vehicle_id) REFERENCES Vehicles(vehicle_id)
+);
+
+-- Bảng InventoryCheckDetails (Chi tiết Kiểm kê B-wins): Chi tiết kết quả kiểm kê tại từng vị trí.
+-- Dựa trên Block, Mã QLTK, Mã linh kiện, Số lượng/Số thùng hệ thống và thực tế [31-33, 44, 48, 51-53].
+CREATE TABLE InventoryCheckDetails (
+    check_detail_id INT PRIMARY KEY AUTO_INCREMENT, -- ID chi tiết kiểm kê tự tăng
+    transaction_id INT NOT NULL,           -- Mã giao dịch (liên kết tới Transaction loại InventoryCheck) (FK tới Transactions)
+    inventory_id INT,                    -- Liên kết tới mục tồn kho tương ứng (nếu tồn tại trên hệ thống) (FK tới Inventory)
+    qltk_code VARCHAR(100) NOT NULL,     -- Mã quản lý tồn kho (QLTK) được quét [31, 44, 48, 51-53]
+    part_id VARCHAR(100) NOT NULL,       -- Mã linh kiện (FK tới Parts) [31, 44, 48, 51-53]
+    location_id VARCHAR(100) NOT NULL,   -- Vị trí kho kiểm kê (FK tới WarehouseLocations) [31, 44, 48, 51-53, 68-70]
+    system_quantity DECIMAL(10, 2),      -- Số lượng tồn theo hệ thống trước khi kiểm kê [32]
+    actual_quantity DECIMAL(10, 2) NOT NULL, -- Số lượng tồn thực tế đếm được [32, 33]
+    system_number_of_boxes INT,          -- Số thùng theo hệ thống [32]
+    actual_number_of_boxes INT,          -- Số thùng thực tế đếm được [32]
+    discrepancy_notes TEXT,              -- Ghi chú sai lệch [32, 33, 59, 92]
+    is_new_item BOOLEAN DEFAULT FALSE,   -- Đánh dấu nếu mục này có trong thực tế nhưng không có trên hệ thống [32]
+    CONSTRAINT fk_check_transaction FOREIGN KEY (transaction_id) REFERENCES Transactions(transaction_id),
+    CONSTRAINT fk_check_inventory FOREIGN KEY (inventory_id) REFERENCES Inventory(inventory_id),
+    CONSTRAINT fk_check_part FOREIGN KEY (part_id) REFERENCES Parts(part_id),
+    CONSTRAINT fk_check_location FOREIGN KEY (location_id) REFERENCES WarehouseLocations(location_id)
+);
+
+-- Bảng ProblemReports (Báo cáo vấn đề): Ghi lại các vấn đề phát sinh (thiếu tồn, sai lệch, linh kiện gấp, etc.)
+-- Dựa trên Tình trạng tồn kho, Tình trạng lấy/cấp, Linh kiện gấp, Sai lệch, Hiệu suất [10, 12, 17, 29, 30, 32, 41, 42, 45, 49, 61, 99, 100].
+CREATE TABLE ProblemReports (
+    problem_id INT PRIMARY KEY AUTO_INCREMENT,   -- ID vấn đề tự tăng
+    reported_timestamp DATETIME NOT NULL,    -- Thời gian báo cáo [17, 30, 61]
+    problem_type VARCHAR(100) NOT NULL,      -- Loại vấn đề (VD: Thiếu tồn, Quá tải, Sai vị trí, Chậm tiến độ, Linh kiện gấp) [10, 17, 29, 32, 41, 42, 45, 49, 59, 61, 99, 100]
+    part_id VARCHAR(100),                  -- Mã linh kiện liên quan (FK tới Parts, có thể NULL nếu vấn đề không specific cho 1 LK) [10, 17, 29, 32, 41, 42, 49, 61, 99, 100]
+    related_transaction_id INT,            -- ID giao dịch liên quan (FK tới Transactions, có thể NULL) [17]
+    quantity DECIMAL(10, 2),               -- Số lượng liên quan (thiếu, thừa, cần gấp) [17, 29, 41, 42, 61, 99, 100]
+    location_details TEXT,                 -- Vị trí liên quan (Kho, Xe, Chuyền) [10, 32, 35-37, 41, 43, 47, 98, 99]
+    reported_by_user_id VARCHAR(50),       -- Người báo cáo (FK tới Users)
+    description TEXT,                      -- Mô tả chi tiết vấn đề [33, 59, 92]
+    status ENUM('Open', 'InProgress', 'Closed', 'Cancelled') NOT NULL, -- Trạng thái xử lý
+    assigned_to_user_id VARCHAR(50),       -- Người được giao xử lý (FK tới Users) [17, 30, 33]
+    resolution_notes TEXT,                 -- Ghi chú xử lý vấn đề [30]
+    resolved_timestamp DATETIME,           -- Thời gian hoàn thành xử lý
+    priority ENUM('Low', 'Medium', 'High', 'Urgent'), -- Độ ưu tiên (VD: Linh kiện gấp là Urgent) [17, 30, 49, 61, 100]
+    CONSTRAINT fk_problem_part FOREIGN KEY (part_id) REFERENCES Parts(part_id),
+    CONSTRAINT fk_problem_transaction FOREIGN KEY (related_transaction_id) REFERENCES Transactions(transaction_id),
+    CONSTRAINT fk_problem_reporter FOREIGN KEY (reported_by_user_id) REFERENCES Users(user_id),
+    CONSTRAINT fk_problem_assignee FOREIGN KEY (assigned_to_user_id) REFERENCES Users(user_id)
+);
+
+-- Bảng UrgentPartRequests (Yêu cầu linh kiện gấp): Lưu thông tin các yêu cầu linh kiện cần ưu tiên.
+-- Dựa trên Linh kiện gấp [16, 17, 49, 61, 81, 83, 100].
+CREATE TABLE UrgentPartRequests (
+    urgent_request_id INT PRIMARY KEY AUTO_INCREMENT, -- ID yêu cầu gấp tự tăng
+    part_id VARCHAR(100) NOT NULL,       -- Mã linh kiện cần gấp (FK tới Parts) [16, 17, 49, 61, 81, 83, 100]
+    quantity DECIMAL(10, 2) NOT NULL,    -- Số lượng cần gấp [16, 17, 29, 61, 100]
+    requested_by_user_id VARCHAR(50) NOT NULL, -- Người yêu cầu (FK tới Users) [61, 100]
+    request_timestamp DATETIME NOT NULL, -- Thời gian yêu cầu [17, 61, 100]
+    required_by_timestamp DATETIME,      -- Thời gian cần có (nếu có) [17, 30]
+    status ENUM('Requested', 'Acknowledged', 'Preparing', 'ReadyForSupply', 'Supplied', 'Cancelled') NOT NULL, -- Trạng thái xử lý yêu cầu [49, 61, 100]
+    notes TEXT,                          -- Ghi chú [16, 17]
+    CONSTRAINT fk_urgent_request_part FOREIGN KEY (part_id) REFERENCES Parts(part_id),
+    CONSTRAINT fk_urgent_request_user FOREIGN KEY (requested_by_user_id) REFERENCES Users(user_id)
+);
+
+-- Bảng ProductionPlanDetails (Chi tiết kế hoạch sản xuất): Lưu kế hoạch sản xuất theo chuyền, ngày, lot.
+-- Dựa trên Kế hoạch sản xuất, BOM, Cấu trúc chuyền/công đoạn, Cắt lot [3, 7, 18, 22, 56, 65-67].
+CREATE TABLE ProductionPlanDetails (
+    plan_detail_id INT PRIMARY KEY AUTO_INCREMENT, -- ID chi tiết kế hoạch tự tăng
+    production_date DATE NOT NULL,       -- Ngày sản xuất [56, 65, 66]
+    production_line_id VARCHAR(50) NOT NULL, -- Chuyền sản xuất (FK tới ProductionLines) [3, 7, 14, 18, 20, 46, 56, 66, 67]
+    part_id VARCHAR(100),                -- Linh kiện/Sản phẩm cuối cùng sản xuất (FK tới Parts - có thể là mã sản phẩm) [3]
+    lot_number VARCHAR(100) NOT NULL,    -- Lot sản xuất [3, 7, 22, 30, 37, 42, 43, 56, 65-67, 99]
+    planned_quantity DECIMAL(10, 2),     -- Số lượng sản phẩm dự kiến cho lot này
+    planned_parts_quantity TEXT,         -- Có thể lưu trữ JSON/TEXT chi tiết linh kiện cần theo lot (dựa trên BOM) hoặc liên kết tới BOM
+    lot_sequence INT,                    -- Thứ tự lot trong ngày [65-67]
+    status ENUM('Planned', 'InProgress', 'Completed', 'Cancelled'), -- Trạng thái lot [67]
+    notes TEXT,                          -- Ghi chú (VD: cắt lot, lý do thay đổi) [67]
+    CONSTRAINT fk_plan_line FOREIGN KEY (production_line_id) REFERENCES ProductionLines(line_id),
+    CONSTRAINT fk_plan_part FOREIGN KEY (part_id) REFERENCES Parts(part_id)
+);
+
+-- Bảng BOMDetails (Chi tiết BOM - Bill of Materials): Định nghĩa linh kiện con cần cho linh kiện/sản phẩm lắp ráp.
+-- Dựa trên BOM [22].
+CREATE TABLE BOMDetails (
+    bom_detail_id INT PRIMARY KEY AUTO_INCREMENT, -- ID chi tiết BOM tự tăng
+    assembly_part_id VARCHAR(100) NOT NULL, -- Mã linh kiện/sản phẩm lắp ráp (FK tới Parts) [22]
+    component_part_id VARCHAR(100) NOT NULL, -- Mã linh kiện con cần (FK tới Parts) [22]
+    quantity_per_assembly DECIMAL(10, 4) NOT NULL, -- Số lượng linh kiện con cần cho 1 đơn vị lắp ráp [22]
+    CONSTRAINT fk_bom_assembly_part FOREIGN KEY (assembly_part_id) REFERENCES Parts(part_id),
+    CONSTRAINT fk_bom_component_part FOREIGN KEY (component_part_id) REFERENCES Parts(part_id)
+);
+
+-- Có thể thêm các bảng khác như:
+-- - Master Data cho Cấu trúc Chuyền/Công đoạn chi tiết hơn.
+-- - Bảng riêng cho các loại tem nhãn được in.
+-- - Bảng cho dữ liệu Báo cáo tổng hợp hàng ngày/theo xe/theo người thao tác (có thể là materialized views hoặc bảng riêng để lưu trữ kết quả tính toán định kỳ). [12, 45, 49, 60-62, 81, 84-86]
+
+-- Bước 3: Mô tả các mối quan hệ chính (đã định nghĩa bằng FOREIGN KEY trong lệnh CREATE TABLE)
+
+-- Các bảng và mối quan hệ chính:
+-- - `Users` <--- `Transactions` (1 Người dùng thực hiện nhiều Giao dịch) [12, 60]
+-- - `Suppliers` <--- `Parts` (1 Nhà cung cấp cung cấp nhiều Linh kiện) [3, 4]
+-- - `Parts` <--- `Inventory` (1 Linh kiện có thể có nhiều mục Tồn kho ở các vị trí khác nhau) [8, 12]
+-- - `WarehouseLocations` <--- `Inventory` (1 Vị trí kho chứa Tồn kho của nhiều Linh kiện) [8, 12]
+-- - `Parts` <--- `IssueDetails` (1 Linh kiện xuất qua nhiều chi tiết xuất) [22]
+-- - `WarehouseLocations` <--- `IssueDetails` (Nguồn xuất là 1 Vị trí kho) [26]
+-- - `VehiclePositions` <--- `IssueDetails` (Đích xuất là 1 Vị trí trên xe) [24]
+-- - `ReceivingInstructions` <--- `IssueDetails` (Liên kết khi nhập lại theo CTNK) [24, 28]
+-- - `Transactions` <--- `IssueDetails` (1 Giao dịch Xuất có nhiều chi tiết xuất) [22]
+-- - `Transactions` <--- `ReceiveDetails` (1 Giao dịch Nhập có nhiều chi tiết nhập) [82]
+-- - `Parts` <--- `ReceiveDetails` (1 Linh kiện nhập qua nhiều chi tiết nhập) [82]
+-- - `WarehouseLocations` <--- `ReceiveDetails` (Đích nhập là 1 Vị trí kho) [82]
+-- - `ReceivingInstructions` <--- `ReceiveDetails` (Liên kết với CTNK khi nhập hàng/nhập lại) [24, 28, 82]
+-- - `Transactions` <--- `SupplyDetails` (1 Giao dịch Cấp có nhiều chi tiết cấp) [77]
+-- - `Parts` <--- `SupplyDetails` (1 Linh kiện được cấp qua nhiều chi tiết cấp) [22]
+-- - `VehiclePositions` <--- `SupplyDetails` (Nguồn cấp là 1 Vị trí trên xe) [38]
+-- - `LineLocations` <--- `SupplyDetails` (Đích cấp là 1 Vị trí trên chuyền) [77]
+-- - `Vehicles` <--- `SupplyDetails` (Giao dịch Cấp liên quan đến 1 Xe CCLK) [77]
+-- - `Transactions` <--- `CollectionDetails` (1 Giao dịch Thu hồi có nhiều chi tiết thu hồi) [13]
+-- - `LineLocations` <--- `CollectionDetails` (Nguồn thu hồi là 1 Vị trí trên chuyền) [13]
+-- - `VehiclePositions` <--- `CollectionDetails` (Đích thu hồi là 1 Vị trí trên xe) [13]
+-- - `Vehicles` <--- `CollectionDetails` (Giao dịch Thu hồi liên quan đến 1 Xe CCLK) [13]
+-- - `Transactions` <--- `InventoryCheckDetails` (1 Giao dịch Kiểm kê có nhiều chi tiết kiểm kê) [31]
+-- - `Inventory` <--- `InventoryCheckDetails` (Chi tiết kiểm kê tham chiếu đến mục tồn kho) [32]
+-- - `Parts` <--- `InventoryCheckDetails` (Chi tiết kiểm kê liên quan đến 1 Linh kiện) [31]
+-- - `WarehouseLocations` <--- `InventoryCheckDetails` (Chi tiết kiểm kê tại 1 Vị trí kho) [31]
+-- - `Parts` <--- `ProblemReports` (1 Linh kiện có thể liên quan đến nhiều Báo cáo vấn đề) [17]
+-- - `Transactions` <--- `ProblemReports` (1 Giao dịch có thể phát sinh nhiều Báo cáo vấn đề) [17]
+-- - `Users` <--- `ProblemReports` (Người báo cáo hoặc người xử lý vấn đề là 1 Người dùng) [17]
+-- - `Parts` <--- `UrgentPartRequests` (1 Linh kiện có thể được yêu cầu gấp nhiều lần) [16]
+-- - `Users` <--- `UrgentPartRequests` (Người yêu cầu gấp là 1 Người dùng) [100]
+-- - `ProductionLines` <--- `ProductionPlanDetails` (1 Chuyền có nhiều chi tiết kế hoạch sản xuất) [18]
+-- - `Parts` <--- `ProductionPlanDetails` (1 Linh kiện/Sản phẩm có trong nhiều kế hoạch sản xuất) [18]
+-- - `Parts` <--- `BOMDetails` (1 Linh kiện là thành phần hoặc là sản phẩm lắp ráp trong BOM) [22]
+
+-- Kết thúc bộ lệnh SQL
+
+
+Bộ lệnh này cung cấp một cấu trúc cơ bản để bắt đầu. Bạn có thể chạy các lệnh CREATE TABLE này trong môi trường cơ sở dữ liệu của mình. Sau khi tạo xong, bạn sẽ có một cơ sở dữ liệu trống với cấu trúc các bảng và mối quan hệ như đã định nghĩa, sẵn sàng để nhập dữ liệu và phát triển các ứng dụng quản lý kho Store.s dựa trên đó.
+
+NotebookLM có thể đưa ra thông tin không 
