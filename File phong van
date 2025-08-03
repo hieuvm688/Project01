@@ -17,6 +17,15 @@ Em mong muốn được làm việc trong môi trường chuyên nghiệp như V
 
 ## 📌 PHẦN 1: CÂU HỎI VỀ KỸ THUẬT .NET – C#, ASP.NET, WPF
 
+## Sự khác nhau giữa sử dụng DI:
+- Tính linh hoạt: DI chỉ cần biết tới việc đã có 1 class kế thừa và triển khai interface mà không quan tâm tới đấy là class gì,
+ở đâu như sử dụng class thông thường. Với class thường thì cần phải khởi tạo class mới.
+- Tính bảo trì/mở rộng: Khi bảo trì hoặc mở rộng, cần thay đổi code trong lớp sử dụng (đối với class thông thường).
+Còn với DI thì vì nó không triển khai trong class, nên không cần thay đổi code, chỉ cần thay đổi trong lớp triển khai đã kế thừa interface
+- Dễ dàng tạo Unit test: Do class thường thì khi test cần phải chạy cái function của class đấy, nên sẽ khó test hơn là dùng DI. DI có thể tạo class
+ảo và triển khai sau đấy tiêm vào chạy unit test là có thể test rồi.
+- Tính logic: class thường thì cần biết lớp/đối tượng cụ thể; Trong khi DI chỉ cần quan tâm tới lớp Interface
+
 ### 1.1 Câu hỏi về C# và OOP
 
 **Q:** Điểm khác nhau giữa `abstract class` và `interface` trong C#?
